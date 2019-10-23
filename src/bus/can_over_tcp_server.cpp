@@ -9,7 +9,7 @@
  */
 
 #include <barrett/os.h>
-#include <barrett/bus/can_over_tcp_server.h>
+#include "can_over_tcp_server.h"
 
 namespace barrett
 {
@@ -78,6 +78,7 @@ public:
         }
         else
         {
+            std::cout << "handle_read_header died" << std::endl;
             delete this;
         }
     }
@@ -103,8 +104,17 @@ public:
             // TODO
         }
 
+        // printf("<<bus id:%d len:%d data:", busId, len);
+        // for (size_t i = 0; i < len; i++)
+        // {
+        //     printf("%X", (unsigned char)data_[i]);
+        // }
+        // putchar('\n');
+
         // msg : ret(4)
         int32_t ret = cansocket_->send(busId, reinterpret_cast<const unsigned char *>(data_), len);
+
+        // printf(">>ret:%d\n", ret);
 
         memcpy(data_, &ret, 4);
         boost::asio::write(socket_, boost::asio::buffer(data_, 4));
@@ -123,10 +133,24 @@ public:
 
         int blocking = readInt32(reinterpret_cast<const unsigned char *>(data_));
 
+        // printf("<<blocking:%d\n", blocking);
+
         // msg : ret(4) + busId(4) + len(4) + data
         int busId;
         size_t len;
         int32_t ret = cansocket_->receiveRaw(busId, reinterpret_cast<unsigned char *>(data_ + 12), len, blocking == 1);
+
+        if (ret != 0)
+        {
+            len = 0;
+        }
+
+        // printf(">>ret:%d bus id:%d len:%d data:", ret, busId, (int)len);
+        // for (size_t i = 0; i < len; i++)
+        // {
+        //     printf("%X", (unsigned char)data_[i + 12]);
+        // }
+        // putchar('\n');
 
         int32_t dbusId = busId;
         int32_t dlen = len;
@@ -152,6 +176,8 @@ CANOverTCPServer::CANOverTCPServer(boost::asio::io_service &io_service, short po
 {
     cansocket.open(canPort);
 
+    std::cout << "CAN Socket is " << (cansocket.isOpen() ? "opened" : "closed") << std::endl;
+
     session *new_session = new session(io_service_, &cansocket);
     acceptor_.async_accept(new_session->socket(),
                            boost::bind(&CANOverTCPServer::handle_accept, this, new_session,
@@ -164,6 +190,9 @@ void CANOverTCPServer::handle_accept(session *new_session,
     if (!error)
     {
         new_session->start();
+
+        std::cout << "session started" << std::endl;
+
         new_session = new session(io_service_, &cansocket);
         acceptor_.async_accept(new_session->socket(),
                                boost::bind(&CANOverTCPServer::handle_accept, this, new_session,
@@ -171,6 +200,8 @@ void CANOverTCPServer::handle_accept(session *new_session,
     }
     else
     {
+        std::cout << "session died" << std::endl;
+
         delete new_session;
     }
 }

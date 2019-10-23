@@ -33,6 +33,7 @@ public:
 	 */
     CANOverTCPSocket();
     CANOverTCPSocket(int port) throw(std::runtime_error);
+    CANOverTCPSocket(const char *ip, const char *port) throw(std::runtime_error);
     ~CANOverTCPSocket();
     /** getMutex() method gets and locks interthread data exchange assuring nothing critical is happening in either thread.
 	 */
@@ -60,6 +61,9 @@ protected:
     tcp::socket *socket;
 
     mutable unsigned char packetData[64];
+
+    const char *ip_;
+    const char *port_;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(CANOverTCPSocket);

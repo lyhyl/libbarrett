@@ -17,7 +17,7 @@
 #include <barrett/os.h>
 #include <barrett/thread/real_time_mutex.h>
 #include <barrett/products/puck.h>
-#include <barrett/bus/can_over_tcp_socket.h>
+#include "can_over_tcp_socket.h"
 
 namespace barrett
 {
@@ -26,6 +26,11 @@ namespace bus
 
 CANOverTCPSocket::CANOverTCPSocket() : mutex()
 {
+}
+
+CANOverTCPSocket::CANOverTCPSocket(const char *ip, const char *port) throw(std::runtime_error) : ip_(ip), port_(port)
+{
+    open(0);
 }
 
 CANOverTCPSocket::CANOverTCPSocket(int port) throw(std::runtime_error) : mutex()
@@ -47,8 +52,10 @@ void CANOverTCPSocket::open(int port) throw(std::logic_error, std::runtime_error
 
     logMessage("CANOverTCPSocket::open(%d) using CAN Over TCP driver") % port;
 
+    std::cout << "using CAN Over TCP driver" << std::endl;
+
     tcp::resolver resolver(io_service);
-    tcp::resolver::query query(tcp::v4(), "localhost", "12345");
+    tcp::resolver::query query(tcp::v4(), ip_, port_);
     tcp::resolver::iterator iterator = resolver.resolve(query);
 
     socket = new tcp::socket(io_service);
@@ -84,6 +91,13 @@ int CANOverTCPSocket::send(int busId, const unsigned char *data, size_t len) con
     memcpy(packetData + 12, data, len);
     boost::asio::write(*socket, boost::asio::buffer(packetData, len + 12));
 
+    // printf("<<bus id:%d len:%d data:", busId, (int)len);
+    // for (size_t i = 0; i < len; i++)
+    // {
+    //     printf("%X", (unsigned char)data[i]);
+    // }
+    // putchar('\n');
+
     // msg : ret(4)
     const size_t reply_length = 4;
     char reply[reply_length];
@@ -91,12 +105,17 @@ int CANOverTCPSocket::send(int busId, const unsigned char *data, size_t len) con
 
     assert(actual_reply_length == reply_length);
 
-    return *reinterpret_cast<int32_t *>(reply);
+    int ret = *reinterpret_cast<int32_t *>(reply);
+    // printf(">>ret:%d\n", ret);
+
+    return ret;
 }
 
 int CANOverTCPSocket::receiveRaw(int &busId, unsigned char *data, size_t &len, bool blocking) const
 {
     BARRETT_SCOPED_LOCK(mutex);
+
+    // printf("<<blocking:%d\n", blocking);
 
     // msg : type(4) + blocking(4)
     int32_t type = 1;
@@ -119,6 +138,13 @@ int CANOverTCPSocket::receiveRaw(int &busId, unsigned char *data, size_t &len, b
     size_t actual_data_length = boost::asio::read(*socket, boost::asio::buffer(data, len));
 
     assert(actual_data_length == len);
+
+    // printf(">>ret:%d bus id:%d len:%d data:", ret, busId, (int)len);
+    // for (size_t i = 0; i < len; i++)
+    // {
+    //     printf("%X", (unsigned char)data[i]);
+    // }
+    // putchar('\n');
 
     return ret;
 }
