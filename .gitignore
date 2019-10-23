@@ -5,3 +5,9 @@ CMakeCache.txt
 Doxyfile
 Makefile
 include/barrett/config.h
+programs/bt-wam-autotension
+programs/bt-wam-gravitycal
+programs/bt-wam-zerocal
+src/libbarrett.so
+src/libbarrett.so.1.2
+src/libbarrett.so.1.2.4
