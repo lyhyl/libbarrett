@@ -2,6 +2,8 @@
 set(barrett_SOURCES
 	bus/bus_manager.cpp
 	bus/communications_bus.cpp
+	bus/can_over_tcp_socket.cpp
+	bus/can_over_tcp_server.cpp
 	
 	cdlbt/calgrav.c
 	cdlbt/dynamics.c
